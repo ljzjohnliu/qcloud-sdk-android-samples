@@ -4,11 +4,15 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.tencent.qcloud.csp.sample"
-        minSdkVersion 15
+        minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
     }
     buildTypes {
         release {
@@ -26,5 +30,6 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    implementation 'com.tencent.qcloud:cosxml:5.6.0'
+//    implementation 'com.tencent.qcloud:cosxml:5.6.0'
+    implementation 'com.qcloud.cos:cos-android:5.9.+'
 }

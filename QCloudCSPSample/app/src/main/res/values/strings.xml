@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">QCloudCSPSample</string>
+    <string name="app_name">腾讯云Demo</string>
     <string name="get_service">获取 Bucket 列表</string>
     <string name="put_bucket">创建 Bucket</string>
     <string name="bucket_name">Bucket 名称</string>

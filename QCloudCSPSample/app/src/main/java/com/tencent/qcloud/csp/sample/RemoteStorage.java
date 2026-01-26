@@ -33,7 +33,7 @@ public class RemoteStorage {
     private boolean isHttps;
     private String appid;
     private String region;
-
+    private static int mSliceSize;
 
     public RemoteStorage(Context context, String appid, String region, String hostFormat) {
 
@@ -92,6 +92,14 @@ public class RemoteStorage {
         return cosXmlService.putBucket(putBucketRequest);
     }
 
+    public static void setSliceSize(int sliceSize) {
+        mSliceSize = sliceSize;
+    }
+
+    public static int getSliceSize() {
+        return mSliceSize;
+    }
+
     /**
      * 上传文件
      *
@@ -106,7 +114,7 @@ public class RemoteStorage {
             throws CosXmlServiceException, CosXmlClientException {
 
         UploadService.ResumeData resumeData = new UploadService.ResumeData();
-        resumeData.sliceSize = MULTIPART_UPLOAD_SIZE; // 分片上传的大小
+        resumeData.sliceSize = mSliceSize > 0 ? mSliceSize : MULTIPART_UPLOAD_SIZE; // 分片上传的大小
         resumeData.cosPath = cosPath;
         resumeData.bucket = bucketName;
         resumeData.srcPath = localPath;
