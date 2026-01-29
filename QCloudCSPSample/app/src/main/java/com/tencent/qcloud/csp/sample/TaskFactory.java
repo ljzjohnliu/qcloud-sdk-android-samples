@@ -2,6 +2,8 @@ package com.tencent.qcloud.csp.sample;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.SystemClock;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.tencent.cos.xml.exception.CosXmlClientException;
@@ -23,6 +25,7 @@ import java.util.List;
  */
 public class TaskFactory {
 
+    public static final String TAG = "TaskFactory";
     private static TaskFactory instance;
 
     private TaskFactory() {}
@@ -134,15 +137,14 @@ public class TaskFactory {
     }
 
     static class PutObjectTask extends AsyncTask<Void, Integer, UploadService.UploadServiceResult> {
-
         Context context;
         RemoteStorage remoteStorage;
         String bucket;
         String srcPath;
         String dstPath;
+        long startTime;
 
         public PutObjectTask(Context context, RemoteStorage remoteStorage, String bucket, String srcPath, String dstPath) {
-
             this.context = context;
             this.remoteStorage = remoteStorage;
             this.bucket = bucket;
@@ -153,6 +155,7 @@ public class TaskFactory {
         @Override
         protected UploadService.UploadServiceResult doInBackground(Void... voids) {
             try {
+                startTime = System.currentTimeMillis();
                 return remoteStorage.uploadFile(bucket, dstPath, srcPath, new CosXmlProgressListener() {
                     @Override
                     public void onProgress(long progress, long total) {
@@ -164,21 +167,20 @@ public class TaskFactory {
             } catch (CosXmlClientException e) {
                 e.printStackTrace();
             }
-
             return null;
         }
 
 
         @Override
         protected void onProgressUpdate(Integer... values) {
-
             QCloudLogger.i("upload", "progress " + values[0]);
+            Log.d(TAG, "PutObjectTask, onProgressUpdate: progress " + values[0]);
         }
 
 
         @Override
         protected void onPostExecute(UploadService.UploadServiceResult uploadServiceResult) {
-
+            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + (System.currentTimeMillis() - startTime));
             if (uploadServiceResult != null) {
                 Toast.makeText(context, uploadServiceResult.printResult(), Toast.LENGTH_SHORT).show();
             }
@@ -186,15 +188,14 @@ public class TaskFactory {
     }
 
     static class SimplePutObjectTask extends AsyncTask<Void, Integer, PutObjectResult> {
-
         Context context;
         RemoteStorage remoteStorage;
         String bucket;
         String srcPath;
         String dstPath;
+        long startTime;
 
         public SimplePutObjectTask(Context context, RemoteStorage remoteStorage, String bucket, String srcPath, String dstPath) {
-
             this.context = context;
             this.remoteStorage = remoteStorage;
             this.bucket = bucket;
@@ -205,6 +206,7 @@ public class TaskFactory {
         @Override
         protected PutObjectResult doInBackground(Void... voids) {
             try {
+                startTime = System.currentTimeMillis();
                 return remoteStorage.simpleUploadFile(bucket, dstPath, srcPath, new CosXmlProgressListener() {
                     @Override
                     public void onProgress(long progress, long total) {
@@ -216,21 +218,20 @@ public class TaskFactory {
             } catch (CosXmlClientException e) {
                 e.printStackTrace();
             }
-
             return null;
         }
 
 
         @Override
         protected void onProgressUpdate(Integer... values) {
-
             QCloudLogger.i("upload", "progress " + values[0]);
+            Log.d(TAG, "SimplePutObjectTask, onProgressUpdate: progress " + values[0]);
         }
 
 
         @Override
         protected void onPostExecute(PutObjectResult putObjectResult) {
-
+            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + (System.currentTimeMillis() - startTime));
             if (putObjectResult != null) {
                 Toast.makeText(context, putObjectResult.printResult(), Toast.LENGTH_SHORT).show();
             }

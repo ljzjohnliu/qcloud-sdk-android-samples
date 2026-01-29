@@ -12,13 +12,19 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import java.io.File;
-
+import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
+//    private String[] fileSizeArray = {"5MB", "10MB", "20MB", "50MB", "80MB", "150MB", "400MB", "800MB", "1GB", "10GB"};
+    private String[] fileSizeArray = {"5M", "10M", "20M", "50M", "80M", "150M", "400M", "800M", "1G", "10G"};
     public static String TAG = "MainActivity";
     private static Context context;
     private final int PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1000;
@@ -30,12 +36,49 @@ public class MainActivity extends AppCompatActivity {
     private String region = "wh";
     private String hostFormat = "${bucket}.yun.ccb.com";
 
+    Switch partSwitch;
     EditText bucketName;
     EditText filePathEdt;
     EditText sliceSizeEdt;
 
     TaskFactory taskFactory;
     private String filePath;
+
+    private String fileSizeType;
+    private String[] picFilePaths;
+    private String[] videoFilePaths;
+
+    class MySelectedListener implements AdapterView.OnItemSelectedListener {
+
+        @Override
+        public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+            Toast.makeText(MainActivity.this, "您选择的是：" + fileSizeArray[i], Toast.LENGTH_SHORT).show();
+            fileSizeType = fileSizeArray[i];
+
+            String picFolderPath = "/mnt/sdcard/picture/" + fileSizeArray[i];
+            Log.d(TAG, "onItemSelected: picFolderPath = " + picFolderPath);
+            picFilePaths = Utils.traverseFolder(new File(picFolderPath));
+            Log.d(TAG, "onItemSelected: picFilePaths = " + Arrays.toString(picFilePaths));
+
+            String videoFolderPath = "/mnt/sdcard/video/" + fileSizeArray[i];
+            Log.d(TAG, "onItemSelected: videoFolderPath = " + videoFolderPath);
+            videoFilePaths = Utils.traverseFolder(new File(videoFolderPath));
+            Log.d(TAG, "onItemSelected: videoFilePaths = " + Arrays.toString(videoFilePaths));
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> adapterView) {
+
+        }
+    }
+
+    private void initSpinner() {
+        ArrayAdapter<String> starAdapter = new ArrayAdapter<>(this, R.layout.item_dropdown, fileSizeArray);
+        Spinner sp = findViewById(R.id.file_size_spinner);
+        sp.setAdapter(starAdapter);
+        sp.setSelection(0);
+        sp.setOnItemSelectedListener(new MySelectedListener());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,9 +88,11 @@ public class MainActivity extends AppCompatActivity {
         remoteStorage = new RemoteStorage(this, appid, region, hostFormat);
         bucketName = findViewById(R.id.bucket_name);
         filePathEdt = findViewById(R.id.file_path);
+        partSwitch = findViewById(R.id.switch_part);
         sliceSizeEdt = findViewById(R.id.slice_size);
         taskFactory = TaskFactory.getInstance();
         requestPermissions();
+        initSpinner();
     }
 
     public void onGetServiceClick(View view) {
@@ -131,17 +176,33 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, OPEN_FILE_CODE);
     }
 
-    public void simpleUpload(View view) {
+    public void picUpload(View view) {
+        if (partSwitch.isChecked()) {
+            multiUpload(false, true);
+        } else {
+            simpleUpload(false, true);
+        }
+    }
+
+    public void videoUpload(View view) {
+        if (partSwitch.isChecked()) {
+            multiUpload(true, true);
+        } else {
+            simpleUpload(true, true);
+        }
+    }
+
+    public void simpleUpload(boolean isVideo, boolean isMultiFile) {
         String bucketNameText = bucketName.getText().toString();
         filePath = bucketName.getText().toString();
         filePath = "/mnt/sdcard/test_gif.gif";
         Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePath = " + filePath);
         if (!TextUtils.isEmpty(bucketNameText) && !TextUtils.isEmpty(filePath)) {
-            taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
+            taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
         }
     }
 
-    public void multiUpload(View view) {
+    public void multiUpload(boolean isVideo, boolean isMultiFile) {
         String sliceSizeTxt = sliceSizeEdt.getText().toString();
         if (!TextUtils.isEmpty(sliceSizeTxt)) {
             int sliceSize = Integer.parseInt(sliceSizeTxt);

@@ -11,8 +11,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:onClick="onGetServiceClick"
@@ -25,7 +23,6 @@
         android:id="@+id/put_bucket"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:onClick="onPutBucketClick"
@@ -38,8 +35,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:ems="10"
@@ -56,68 +51,108 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
+        android:visibility="gone"
         android:hint="上传文件路径"
         android:inputType="text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/bucket_name" />
 
-    <EditText
-        android:id="@+id/slice_size"
-        android:layout_width="match_parent"
+    <Spinner
+        android:id="@+id/file_size_spinner"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
+        android:dropDownVerticalOffset="0dp"
+        android:spinnerMode="dropdown"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/file_path" />
+
+    <EditText
+        android:id="@+id/upload_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:ems="10"
+        android:hint="上传次数"
+        android:inputType="number"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/file_size_spinner"
+        app:layout_constraintTop_toBottomOf="@+id/file_path" />
+
+    <TextView
+        android:id="@+id/switch_txt"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="14dp"
+        android:textSize="18sp"
+        android:text="是否分片上传"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/upload_count" />
+
+    <Switch
+        android:id="@+id/switch_part"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="12dp"
+        app:layout_constraintStart_toEndOf="@+id/switch_txt"
+        app:layout_constraintTop_toBottomOf="@+id/upload_count" />
+
+    <EditText
+        android:id="@+id/slice_size"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="0dp"
         android:layout_marginEnd="8dp"
         android:hint="分片大小"
         android:inputType="number"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/file_path" />
+        app:layout_constraintStart_toEndOf="@+id/switch_part"
+        app:layout_constraintTop_toBottomOf="@+id/upload_count" />
 
     <Button
-        android:id="@+id/upload"
+        android:id="@+id/video_upload"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:onClick="onPutObjectClick"
-        android:text="@string/upload"
+        android:onClick="videoUpload"
+        android:text="视频上传"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/slice_size" />
 
     <Button
-        android:id="@+id/simple_upload"
+        android:id="@+id/img_upload"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:onClick="simpleUpload"
-        android:text="简单上传"
+        android:onClick="picUpload"
+        android:text="图片上传"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/upload" />
+        app:layout_constraintTop_toBottomOf="@+id/video_upload" />
 
-    <Button
-        android:id="@+id/multi_upload"
+    <TextView
+        android:id="@+id/upload_result"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:onClick="multiUpload"
-        android:text="分片上传"
+        android:textSize="16sp"
+        android:text="测试资源是：，上传平均耗时：， 成功率："
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/simple_upload" />
+        app:layout_constraintTop_toBottomOf="@+id/img_upload" />
 
 </android.support.constraint.ConstraintLayout>
