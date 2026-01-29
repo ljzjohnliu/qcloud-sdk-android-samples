@@ -177,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void picUpload(View view) {
+        Log.d(TAG, "picUpload: -----partSwitch.isChecked() = " + partSwitch.isChecked());
         if (partSwitch.isChecked()) {
             multiUpload(false, true);
         } else {
@@ -194,27 +195,64 @@ public class MainActivity extends AppCompatActivity {
 
     public void simpleUpload(boolean isVideo, boolean isMultiFile) {
         String bucketNameText = bucketName.getText().toString();
-        filePath = bucketName.getText().toString();
-        filePath = "/mnt/sdcard/test_gif.gif";
-        Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePath = " + filePath);
-        if (!TextUtils.isEmpty(bucketNameText) && !TextUtils.isEmpty(filePath)) {
-            taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
+        Log.d(TAG, "simpleUpload: bucketNameText = " + bucketNameText);
+        if (TextUtils.isEmpty(bucketNameText)) {
+            return;
+        }
+        if (isMultiFile) {
+            String[] filePaths = isVideo ? videoFilePaths : picFilePaths;
+            if (filePaths == null) {
+                Toast.makeText(MainActivity.this, "filePaths is null!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            for (int i = 0; i < filePaths.length; i++) {
+                Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePaths[" + i + "] = " + filePaths[i]);
+                if (!TextUtils.isEmpty(filePaths[i])) {
+                    taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePaths[i], filePaths[i]).execute();
+                }
+            }
+        } else {
+            filePath = filePathEdt.getText().toString();
+            filePath = "/mnt/sdcard/test_gif.gif";
+            Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePath = " + filePath);
+            if (!TextUtils.isEmpty(bucketNameText) && !TextUtils.isEmpty(filePath)) {
+                taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
+            }
         }
     }
 
     public void multiUpload(boolean isVideo, boolean isMultiFile) {
+        String bucketNameText = bucketName.getText().toString();
+        Log.d(TAG, "multiUpload: bucketNameText = " + bucketNameText);
+        if (TextUtils.isEmpty(bucketNameText)) {
+            return;
+        }
         String sliceSizeTxt = sliceSizeEdt.getText().toString();
         if (!TextUtils.isEmpty(sliceSizeTxt)) {
             int sliceSize = Integer.parseInt(sliceSizeTxt);
             RemoteStorage.setSliceSize(sliceSize);
         }
         Log.d(TAG, "MainActivity, multiUpload: getSliceSize = " + RemoteStorage.getSliceSize());
-        String bucketNameText = bucketName.getText().toString();
-        filePath = bucketName.getText().toString();
-        filePath = "/mnt/sdcard/test_gif.gif";
-        Log.d(TAG, "MainActivity, multiUpload: bucketNameText = " + bucketNameText + ", filePath = " + filePath);
-        if (!TextUtils.isEmpty(bucketNameText) && !TextUtils.isEmpty(filePath)) {
-            taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
+
+        if (isMultiFile) {
+            String[] filePaths = isVideo ? videoFilePaths : picFilePaths;
+            if (filePaths == null) {
+                Toast.makeText(MainActivity.this, "filePaths is null!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            for (int i = 0; i < filePaths.length; i++) {
+                Log.d(TAG, "MainActivity, multiUpload: bucketNameText = " + bucketNameText + ", filePaths[" + i + "] = " + filePaths[i]);
+                if (!TextUtils.isEmpty(filePaths[i])) {
+                    taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePaths[i], filePaths[i]).execute();
+                }
+            }
+        } else {
+            filePath = filePathEdt.getText().toString();
+            filePath = "/mnt/sdcard/test_gif.gif";
+            Log.d(TAG, "MainActivity, multiUpload: bucketNameText = " + bucketNameText + ", filePath = " + filePath);
+            if (!TextUtils.isEmpty(filePath)) {
+                taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
+            }
         }
     }
 }
