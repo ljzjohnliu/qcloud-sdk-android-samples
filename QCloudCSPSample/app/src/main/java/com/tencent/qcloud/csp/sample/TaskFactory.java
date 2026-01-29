@@ -59,7 +59,11 @@ public class TaskFactory {
         return new PutObjectTask(context, remoteStorage, bucket, srcPath, dstPath);
     }
 
+    public PutObjectTask createPutObjectTask(Context context, RemoteStorage remoteStorage, String bucket,
+                                             String srcPath, String dstPath, PutFileCallBack putFileCallBack) {
 
+        return new PutObjectTask(context, remoteStorage, bucket, srcPath, dstPath, putFileCallBack);
+    }
 
     public SimplePutObjectTask createSimplePutObjectTask(Context context, RemoteStorage remoteStorage, String bucket,
                                              String srcPath, String dstPath) {
@@ -67,6 +71,11 @@ public class TaskFactory {
         return new SimplePutObjectTask(context, remoteStorage, bucket, srcPath, dstPath);
     }
 
+    public SimplePutObjectTask createSimplePutObjectTask(Context context, RemoteStorage remoteStorage, String bucket,
+                                                         String srcPath, String dstPath, SimplePutFileCallBack simplePutFileCallBack) {
+
+        return new SimplePutObjectTask(context, remoteStorage, bucket, srcPath, dstPath, simplePutFileCallBack);
+    }
 
     public class GetServiceTask extends AsyncTask<Void, Void, GetServiceResult> {
 
@@ -136,6 +145,10 @@ public class TaskFactory {
         }
     }
 
+    interface PutFileCallBack {
+        void onResult(UploadService.UploadServiceResult uploadServiceResult, long costTime);
+    }
+
     static class PutObjectTask extends AsyncTask<Void, Integer, UploadService.UploadServiceResult> {
         Context context;
         RemoteStorage remoteStorage;
@@ -143,6 +156,7 @@ public class TaskFactory {
         String srcPath;
         String dstPath;
         long startTime;
+        PutFileCallBack putFileCallBack;
 
         public PutObjectTask(Context context, RemoteStorage remoteStorage, String bucket, String srcPath, String dstPath) {
             this.context = context;
@@ -150,6 +164,15 @@ public class TaskFactory {
             this.bucket = bucket;
             this.srcPath = srcPath;
             this.dstPath = dstPath;
+        }
+
+        public PutObjectTask(Context context, RemoteStorage remoteStorage, String bucket, String srcPath, String dstPath, PutFileCallBack putFileCallBack) {
+            this.context = context;
+            this.remoteStorage = remoteStorage;
+            this.bucket = bucket;
+            this.srcPath = srcPath;
+            this.dstPath = dstPath;
+            this.putFileCallBack = putFileCallBack;
         }
 
         @Override
@@ -180,11 +203,19 @@ public class TaskFactory {
 
         @Override
         protected void onPostExecute(UploadService.UploadServiceResult uploadServiceResult) {
-            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + (System.currentTimeMillis() - startTime));
+            long costTime = System.currentTimeMillis() - startTime;
+            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + costTime);
             if (uploadServiceResult != null) {
                 Toast.makeText(context, uploadServiceResult.printResult(), Toast.LENGTH_SHORT).show();
             }
+            if (putFileCallBack != null) {
+                putFileCallBack.onResult(uploadServiceResult, costTime);
+            }
         }
+    }
+
+    interface SimplePutFileCallBack {
+        void onResult(PutObjectResult putObjectResult, long costTime);
     }
 
     static class SimplePutObjectTask extends AsyncTask<Void, Integer, PutObjectResult> {
@@ -194,6 +225,7 @@ public class TaskFactory {
         String srcPath;
         String dstPath;
         long startTime;
+        SimplePutFileCallBack simplePutFileCallBack;
 
         public SimplePutObjectTask(Context context, RemoteStorage remoteStorage, String bucket, String srcPath, String dstPath) {
             this.context = context;
@@ -201,6 +233,15 @@ public class TaskFactory {
             this.bucket = bucket;
             this.srcPath = srcPath;
             this.dstPath = dstPath;
+        }
+
+        public SimplePutObjectTask(Context context, RemoteStorage remoteStorage, String bucket, String srcPath, String dstPath, SimplePutFileCallBack simplePutFileCallBack) {
+            this.context = context;
+            this.remoteStorage = remoteStorage;
+            this.bucket = bucket;
+            this.srcPath = srcPath;
+            this.dstPath = dstPath;
+            this.simplePutFileCallBack = simplePutFileCallBack;
         }
 
         @Override
@@ -231,9 +272,13 @@ public class TaskFactory {
 
         @Override
         protected void onPostExecute(PutObjectResult putObjectResult) {
-            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + (System.currentTimeMillis() - startTime));
+            long costTime = System.currentTimeMillis() - startTime;
+            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + costTime);
             if (putObjectResult != null) {
                 Toast.makeText(context, putObjectResult.printResult(), Toast.LENGTH_SHORT).show();
+            }
+            if (simplePutFileCallBack != null) {
+                simplePutFileCallBack.onResult(putObjectResult, costTime);
             }
         }
     }

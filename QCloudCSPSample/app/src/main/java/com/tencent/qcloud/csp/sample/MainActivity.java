@@ -19,6 +19,9 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import com.tencent.cos.xml.model.object.PutObjectResult;
+import com.tencent.cos.xml.transfer.UploadService;
+
 import java.io.File;
 import java.util.Arrays;
 
@@ -207,8 +210,14 @@ public class MainActivity extends AppCompatActivity {
             }
             for (int i = 0; i < filePaths.length; i++) {
                 Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePaths[" + i + "] = " + filePaths[i]);
+                final String path = filePaths[i];
                 if (!TextUtils.isEmpty(filePaths[i])) {
-                    taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePaths[i], filePaths[i]).execute();
+                    taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePaths[i], filePaths[i], new TaskFactory.SimplePutFileCallBack() {
+                        @Override
+                        public void onResult(PutObjectResult putObjectResult, long costTime) {
+                            Log.d(TAG, "simpleUpload, onResult: path = " + path + ", putObjectResult = " + putObjectResult + ", costTime = " + costTime);
+                        }
+                    }).execute();
                 }
             }
         } else {
@@ -242,8 +251,14 @@ public class MainActivity extends AppCompatActivity {
             }
             for (int i = 0; i < filePaths.length; i++) {
                 Log.d(TAG, "MainActivity, multiUpload: bucketNameText = " + bucketNameText + ", filePaths[" + i + "] = " + filePaths[i]);
+                final String path = filePaths[i];
                 if (!TextUtils.isEmpty(filePaths[i])) {
-                    taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePaths[i], filePaths[i]).execute();
+                    taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePaths[i], filePaths[i], new TaskFactory.PutFileCallBack() {
+                        @Override
+                        public void onResult(UploadService.UploadServiceResult uploadServiceResult, long costTime) {
+                            Log.d(TAG, "multiUpload, onResult: path = " + path + ", uploadServiceResult = " + uploadServiceResult + ", costTime = " + costTime);
+                        }
+                    }).execute();
                 }
             }
         } else {
