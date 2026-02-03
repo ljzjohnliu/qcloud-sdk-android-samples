@@ -5,11 +5,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.support.annotation.Nullable;
+import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -21,18 +20,13 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.tencent.cos.xml.exception.CosXmlClientException;
-import com.tencent.cos.xml.exception.CosXmlServiceException;
-import com.tencent.cos.xml.listener.CosXmlResultListener;
-import com.tencent.cos.xml.model.CosXmlRequest;
-import com.tencent.cos.xml.model.CosXmlResult;
-import com.tencent.cos.xml.transfer.COSXMLUploadTask;
-import com.tencent.cos.xml.transfer.TransferManager;
+import com.tencent.cos.xml.model.object.PutObjectResult;
+import com.tencent.cos.xml.transfer.UploadService;
 
 import java.io.File;
 import java.util.Arrays;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity2 extends AppCompatActivity {
 //    private String[] fileSizeArray = {"5MB", "10MB", "20MB", "50MB", "80MB", "150MB", "400MB", "800MB", "1GB", "10GB"};
     private String[] fileSizeArray = {"5M", "10M", "20M", "50M", "80M", "150M", "400M", "800M", "1G", "10G"};
     public static String TAG = "MainActivity";
@@ -41,10 +35,14 @@ public class MainActivity extends AppCompatActivity {
     private final int OPEN_FILE_CODE = 10000;
 
     private static String bucketName = "vodimagex-uploadtest-1301729325";
+    private RemoteStorage remoteStorage;
 
-    MyTransferManager myTransferManager;
-    private TransferManager simpleTransferManager;
-    private TransferManager multiTransferManager;
+    private String appid = "1255000008";
+    private String region = "ap-beijing";
+//    private String hostFormat = "${bucket}.yun.ccb.com";
+//    private String hostFormat = "https://vodimagex-uploadtest-1301729325.cos.ap-beijing.myqcloud.com";
+//    private String hostFormat = "vodimagex-uploadtest-1301729325.yun.ccb.com";
+    private String hostFormat = "vodimagex-uploadtest-1301729325.cos.ap-beijing.myqcloud.com";
 
     Switch partSwitch;
     EditText bucketNameEdt;
@@ -52,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     EditText sliceSizeEdt;
     TextView resultTv;
 
+    TaskFactory taskFactory;
     private String filePath;
 
     private String fileSizeType;
@@ -113,17 +112,29 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main2);
         context = this;
+        remoteStorage = new RemoteStorage(this, appid, region, hostFormat);
         bucketNameEdt = findViewById(R.id.bucket_name);
         filePathEdt = findViewById(R.id.file_path);
         partSwitch = findViewById(R.id.switch_part);
         sliceSizeEdt = findViewById(R.id.slice_size);
         resultTv = findViewById(R.id.upload_result);
+        taskFactory = TaskFactory.getInstance();
         requestPermissions();
         initSpinner();
-        myTransferManager = new MyTransferManager(context);
-        simpleTransferManager = myTransferManager.getSimpleTransferManager();
+    }
+
+    public void onGetServiceClick(View view) {
+        taskFactory.createGetServiceTask(this, remoteStorage).execute();
+    }
+
+    public void onPutBucketClick(View view) {
+        String bucketNameText = bucketNameEdt.getText().toString();
+        Log.d(TAG, "onPutBucketClick: bucketNameText = " + bucketNameText);
+        if (!TextUtils.isEmpty(bucketNameText)) {
+            taskFactory.createPutBucketTask(this, remoteStorage, bucketNameText).execute();
+        }
     }
 
     public void onPutObjectClick(View view) {
@@ -183,8 +194,9 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == OPEN_FILE_CODE && resultCode == Activity.RESULT_OK) {
             filePath = FilePathHelper.getPath(this, data.getData());
-            if (!TextUtils.isEmpty(bucketName)) {
-//                taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
+            String bucketNameText = bucketNameEdt.getText().toString();
+            if (!TextUtils.isEmpty(bucketNameText)) {
+                taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePath, filePath).execute();
             }
         }
     }
@@ -218,124 +230,62 @@ public class MainActivity extends AppCompatActivity {
         totalCount = isVideo ? videoFilePaths.length : picFilePaths.length;
         totalCostTime = 0;
         updateResult((isVideo ? "视频":"图片") + fileSizeType, 0, 0, isMultiFile ? totalCount : 1);
-        Log.d(TAG, "simpleUpload: bucketName = " + bucketName);
-        if (TextUtils.isEmpty(bucketName)) {
+        String bucketNameText = bucketNameEdt.getText().toString();
+        Log.d(TAG, "simpleUpload: bucketNameText = " + bucketNameText);
+        if (TextUtils.isEmpty(bucketNameText)) {
             return;
         }
         if (isMultiFile) {
             String[] filePaths = isVideo ? videoFilePaths : picFilePaths;
             if (filePaths == null || filePaths.length == 0) {
-                Toast.makeText(MainActivity.this, "filePaths is null!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity2.this, "filePaths is null!", Toast.LENGTH_SHORT).show();
                 return;
             }
-            executeTaskByOrder(isVideo, true, filePaths, 0);
+            for (int i = 0; i < filePaths.length; i++) {
+                Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePaths[" + i + "] = " + filePaths[i]);
+                final String path = filePaths[i];
+                File file = new File(path);
+                String fileName = file.getName();
+                if (!TextUtils.isEmpty(filePaths[i])) {
+                    taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, path, (isVideo ? "video/":"picture/") + fileName, new TaskFactory.SimplePutFileCallBack() {
+                        @Override
+                        public void onResult(PutObjectResult putObjectResult, long costTime) {
+                            Log.d(TAG, "simpleUpload, onResult: path = " + path + ", putObjectResult = " + putObjectResult + ", httpCode = " + (putObjectResult != null ? "" + putObjectResult.httpCode : "0")
+                                    + ", costTime = " + costTime);
+                            if (putObjectResult != null && putObjectResult.httpCode == 200) {
+                                sucCount++;
+                                totalCostTime += costTime;
+                                long averageCost = totalCostTime / sucCount;
+                                Log.d(TAG, "simpleUpload onResult: costTime = " + costTime + ", sucCount = " + sucCount + ", totalCostTime = " + totalCostTime + ", averageCost = " + averageCost + ", totalCount = " + totalCount);
+                                updateResult((isVideo ? "视频":"图片") + fileSizeType, averageCost, sucCount, totalCount);
+                            }
+                        }
+                    }).execute();
+                }
+            }
         } else {
             filePath = filePathEdt.getText().toString();
             filePath = "/mnt/sdcard/test_gif.gif";
             File file = new File(filePath);
             String fileName = file.getName();
-            Log.d(TAG, "MainActivity, simpleUpload: bucketName = " + bucketName + ", filePath = " + filePath + "， fileName = " + fileName);
-            if (!TextUtils.isEmpty(bucketName) && !TextUtils.isEmpty(filePath)) {
-                long startTime = System.currentTimeMillis();
-                COSXMLUploadTask cosxmlUploadTask =  simpleTransferManager.upload(bucketName, (isVideo ? "video/":"picture/") + fileName, filePath, null);
-                //设置返回结果回调
-                cosxmlUploadTask.setCosXmlResultListener(new CosXmlResultListener() {
+            Log.d(TAG, "MainActivity, simpleUpload: bucketNameText = " + bucketNameText + ", filePath = " + filePath + "， fileName = " + fileName);
+            if (!TextUtils.isEmpty(bucketNameText) && !TextUtils.isEmpty(filePath)) {
+                taskFactory.createSimplePutObjectTask(this, remoteStorage, bucketNameText, filePath, (isVideo ? "video/":"picture/") + fileName, new TaskFactory.SimplePutFileCallBack() {
                     @Override
-                    public void onSuccess(CosXmlRequest request, CosXmlResult result) {
-                        COSXMLUploadTask.COSXMLUploadTaskResult uploadResult = (COSXMLUploadTask.COSXMLUploadTaskResult) result;
-                        long costTime = System.currentTimeMillis() - startTime;
-                        Log.d(TAG, "simpleUpload, onResult: filePath = " + filePath + ", uploadResult = " + uploadResult + ", costTime = " + costTime);
-                        if (uploadResult != null && uploadResult.httpCode == 200) {
+                    public void onResult(PutObjectResult putObjectResult, long costTime) {
+                        Log.d(TAG, "simpleUpload, onResult: filePath = " + filePath + ", putObjectResult = " + putObjectResult + ", costTime = " + costTime);
+                        if (putObjectResult != null && putObjectResult.httpCode == 200) {
                             updateResult(isVideo ? "单视频":"单图片", costTime, 1, 1);
                         } else {
                             updateResult(isVideo ? "单视频":"单图片", costTime, 0, 1);
                         }
                     }
-
-                    // 如果您使用 kotlin 语言来调用，请注意回调方法中的异常是可空的，否则不会回调 onFail 方法，即：
-                    // clientException 的类型为 CosXmlClientException?，serviceException 的类型为 CosXmlServiceException?
-                    @Override
-                    public void onFail(CosXmlRequest request,
-                                       @Nullable CosXmlClientException clientException,
-                                       @Nullable CosXmlServiceException serviceException) {
-                        if (clientException != null) {
-                            clientException.printStackTrace();
-                        } else {
-                            serviceException.printStackTrace();
-                        }
-                    }
-                });
+                }).execute();
             }
         }
     }
 
-    public void multiUpload(boolean isVideo, boolean isMultiFile) {
-        sucCount = 0;
-        totalCount = isVideo ? videoFilePaths.length : picFilePaths.length;
-        totalCostTime = 0;
-        updateResult((isVideo ? "视频":"图片") + fileSizeType, 0, 0, isMultiFile ? totalCount : 1);
-        Log.d(TAG, "multiUpload: ----1111----bucketName = " + bucketName);
-        if (TextUtils.isEmpty(bucketName)) {
-            return;
-        }
-//        isMultiFile = false;
-        String sliceSizeTxt = sliceSizeEdt.getText().toString();
-        Log.d(TAG, "multiUpload: -----sliceSizeTxt = " + sliceSizeTxt);
-        if (!TextUtils.isEmpty(sliceSizeTxt)) {
-            int sliceSize = Integer.parseInt(sliceSizeTxt);
-            multiTransferManager = myTransferManager.getMultiTransferManager(sliceSize);
-        } else {
-            multiTransferManager = myTransferManager.getMultiTransferManager(1048576);
-        }
-        Log.d(TAG, "MainActivity, multiUpload: getSliceSize = " + RemoteStorage.getSliceSize());
-
-        if (isMultiFile) {
-            String[] filePaths = isVideo ? videoFilePaths : picFilePaths;
-            if (filePaths == null) {
-                return;
-            }
-            executeTaskByOrder(isVideo, false, filePaths, 0);
-        } else {
-            filePath = filePathEdt.getText().toString();
-            filePath = "/mnt/sdcard/test_gif.gif";
-            File file = new File(filePath);
-            String fileName = file.getName();
-            Log.d(TAG, "MainActivity, multiUpload: ----3333----bucketName = " + bucketName + ", filePath = " + filePath + "， fileName = " + fileName);
-            if (!TextUtils.isEmpty(filePath)) {
-                long startTime = System.currentTimeMillis();
-                COSXMLUploadTask cosxmlUploadTask =  multiTransferManager.upload(bucketName, (isVideo ? "video/":"picture/") + fileName, filePath, null);
-                //设置返回结果回调
-                cosxmlUploadTask.setCosXmlResultListener(new CosXmlResultListener() {
-                    @Override
-                    public void onSuccess(CosXmlRequest request, CosXmlResult result) {
-                        COSXMLUploadTask.COSXMLUploadTaskResult uploadResult = (COSXMLUploadTask.COSXMLUploadTaskResult) result;
-                        long costTime = System.currentTimeMillis() - startTime;
-                        Log.d(TAG, "multiUpload, onResult: filePath = " + filePath + ", uploadResult = " + uploadResult + ", costTime = " + costTime);
-                        if (uploadResult != null && uploadResult.httpCode == 200) {
-                            updateResult(isVideo ? "单视频":"单图片", costTime, 1, 1);
-                        } else {
-                            updateResult(isVideo ? "单视频":"单图片", costTime, 0, 1);
-                        }
-                    }
-
-                    // 如果您使用 kotlin 语言来调用，请注意回调方法中的异常是可空的，否则不会回调 onFail 方法，即：
-                    // clientException 的类型为 CosXmlClientException?，serviceException 的类型为 CosXmlServiceException?
-                    @Override
-                    public void onFail(CosXmlRequest request,
-                                       @Nullable CosXmlClientException clientException,
-                                       @Nullable CosXmlServiceException serviceException) {
-                        if (clientException != null) {
-                            clientException.printStackTrace();
-                        } else {
-                            serviceException.printStackTrace();
-                        }
-                    }
-                });
-            }
-        }
-    }
-
-    public void executeTaskByOrder(final boolean isVideo, final boolean isSimple, final String[] filePaths, int position) {
+    public void executeTaskByOrder(final boolean isVideo, final String[] filePaths, int position) {
         if (position >= filePaths.length)
             return;
         final String uploadFilePath = filePaths[position];
@@ -345,41 +295,66 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "executeTaskByOrder: position = " + position + ", uploadFilePath = " + uploadFilePath + "， fileName = " + fileName + ", nextPos = " + nextPos);
 
         if (!TextUtils.isEmpty(uploadFilePath)) {
-            TransferManager transferManager = isSimple ? simpleTransferManager : multiTransferManager;
-            long startTime = System.currentTimeMillis();
-            COSXMLUploadTask cosxmlUploadTask =  transferManager.upload(bucketName, (isVideo ? "video/":"picture/") + fileName, uploadFilePath, null);
-            //设置返回结果回调
-            cosxmlUploadTask.setCosXmlResultListener(new CosXmlResultListener() {
+            taskFactory.createPutObjectTask(this, remoteStorage, bucketName, uploadFilePath, (isVideo ? "video/":"picture/") + fileName, new TaskFactory.PutFileCallBack() {
                 @Override
-                public void onSuccess(CosXmlRequest request, CosXmlResult result) {
-                    COSXMLUploadTask.COSXMLUploadTaskResult uploadResult = (COSXMLUploadTask.COSXMLUploadTaskResult) result;
-                    long costTime = System.currentTimeMillis() - startTime;
-                    Log.d(TAG, "executeTaskByOrder, onSuccess: uploadFilePath = " + uploadFilePath + ", uploadResult = " + uploadResult + ", costTime = " + costTime);
-                    if (uploadResult != null && uploadResult.httpCode == 200) {
+                public void onResult(UploadService.UploadServiceResult uploadServiceResult, long costTime) {
+                    Log.d(TAG, "multiUpload, onResult: path = " + uploadFilePath + ", uploadServiceResult = " + uploadServiceResult  + ", httpCode = " + (uploadServiceResult != null ? "" + uploadServiceResult.httpCode : "0")
+                            + ", costTime = " + costTime);
+                    if (uploadServiceResult != null && uploadServiceResult.httpCode == 200) {
                         sucCount++;
                         totalCostTime += costTime;
                         long averageCost = totalCostTime / sucCount;
-                        Log.d(TAG, "executeTaskByOrder onSuccess: costTime = " + costTime + ", sucCount = " + sucCount + ", totalCostTime = " + totalCostTime + ", averageCost = " + averageCost + ", totalCount = " + totalCount);
+                        Log.d(TAG, "multiUpload onResult: costTime = " + costTime + ", sucCount = " + sucCount + ", totalCostTime = " + totalCostTime + ", averageCost = " + averageCost + ", totalCount = " + totalCount);
                         updateResult((isVideo ? "视频":"图片") + fileSizeType, averageCost, sucCount, totalCount);
                     }
-                    executeTaskByOrder(isVideo, false, filePaths, nextPos);
+                    executeTaskByOrder(isVideo, isVideo ? videoFilePaths : picFilePaths, nextPos);
                 }
+            }).execute();
+        }
+    }
 
-                // 如果您使用 kotlin 语言来调用，请注意回调方法中的异常是可空的，否则不会回调 onFail 方法，即：
-                // clientException 的类型为 CosXmlClientException?，serviceException 的类型为 CosXmlServiceException?
-                @Override
-                public void onFail(CosXmlRequest request,
-                                   @Nullable CosXmlClientException clientException,
-                                   @Nullable CosXmlServiceException serviceException) {
-                    Log.d(TAG, "executeTaskByOrder onFail: clientException = " + clientException + ", serviceException = " + serviceException);
-                    if (clientException != null) {
-                        clientException.printStackTrace();
-                    } else {
-                        serviceException.printStackTrace();
+    public void multiUpload(boolean isVideo, boolean isMultiFile) {
+        sucCount = 0;
+        totalCount = isVideo ? videoFilePaths.length : picFilePaths.length;
+        totalCostTime = 0;
+        updateResult((isVideo ? "视频":"图片") + fileSizeType, 0, 0, isMultiFile ? totalCount : 1);
+        String bucketNameText = bucketNameEdt.getText().toString();
+        Log.d(TAG, "multiUpload: ----1111----bucketNameText = " + bucketNameText);
+        if (TextUtils.isEmpty(bucketNameText)) {
+            return;
+        }
+//        isMultiFile = false;
+        String sliceSizeTxt = sliceSizeEdt.getText().toString();
+        Log.d(TAG, "multiUpload: -----sliceSizeTxt = " + sliceSizeTxt);
+        if (!TextUtils.isEmpty(sliceSizeTxt)) {
+            int sliceSize = Integer.parseInt(sliceSizeTxt);
+            RemoteStorage.setSliceSize(sliceSize);
+        }
+        Log.d(TAG, "MainActivity, multiUpload: getSliceSize = " + RemoteStorage.getSliceSize());
+
+        if (isMultiFile) {
+            String[] filePaths = isVideo ? videoFilePaths : picFilePaths;
+            if (filePaths == null) {
+                return;
+            }
+            executeTaskByOrder(isVideo, filePaths, 0);
+        } else {
+            filePath = filePathEdt.getText().toString();
+            filePath = "/mnt/sdcard/test_gif.gif";
+            File file = new File(filePath);
+            String fileName = file.getName();
+            Log.d(TAG, "MainActivity, multiUpload: ----3333----bucketNameText = " + bucketNameText + ", filePath = " + filePath + "， fileName = " + fileName);
+            if (!TextUtils.isEmpty(filePath)) {
+                taskFactory.createPutObjectTask(this, remoteStorage, bucketNameText, filePath, (isVideo ? "video/":"picture/") + fileName, new TaskFactory.PutFileCallBack() {
+                    @Override
+                    public void onResult(UploadService.UploadServiceResult uploadServiceResult, long costTime) {
+                        Log.d(TAG, "multiUpload, onResult: filePath = " + filePath + ", uploadServiceResult = " + uploadServiceResult + ", costTime = " + costTime);
+                        if (uploadServiceResult != null && uploadServiceResult.httpCode == 200) {
+                            updateResult(isVideo ? "单视频":"单图片", costTime, 1, 1);
+                        }
                     }
-                    executeTaskByOrder(isVideo, false, filePaths, nextPos);
-                }
-            });
+                }).execute();
+            }
         }
     }
 }

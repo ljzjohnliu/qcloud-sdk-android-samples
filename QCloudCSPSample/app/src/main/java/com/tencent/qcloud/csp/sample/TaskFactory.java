@@ -85,15 +85,19 @@ public class TaskFactory {
         public GetServiceTask(Context context, RemoteStorage remoteStorage) {
             this.remoteStorage = remoteStorage;
             this.context = context;
+            Log.d(TAG, "GetServiceTask: remoteStorage = " + remoteStorage);
         }
 
         @Override
         protected GetServiceResult doInBackground(Void ... voids) {
             try {
+                Log.d(TAG, "doInBackground: ***********");
                 return remoteStorage.getService();
             } catch (CosXmlServiceException e) {
+                Log.d(TAG, "doInBackground: CosXmlServiceException = " + e);
                 e.printStackTrace();
             } catch (CosXmlClientException e) {
+                Log.d(TAG, "doInBackground: CosXmlClientException = " + e);
                 e.printStackTrace();
             }
 
@@ -104,6 +108,7 @@ public class TaskFactory {
 
             if (getServiceResult != null && getServiceResult.listAllMyBuckets != null) {
                 List<ListAllMyBuckets.Bucket> buckets = getServiceResult.listAllMyBuckets.buckets;
+                Log.d(TAG, "onPostExecute: ---------------buckets.toString() = " + buckets.toString());
                 Toast.makeText(context, buckets.toString(), Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(context, "GetService failed", Toast.LENGTH_SHORT).show();
@@ -179,6 +184,7 @@ public class TaskFactory {
         protected UploadService.UploadServiceResult doInBackground(Void... voids) {
             try {
                 startTime = System.currentTimeMillis();
+                Log.d(TAG, "PutObjectTask, doInBackground: ------startTime = " + startTime);
                 return remoteStorage.uploadFile(bucket, dstPath, srcPath, new CosXmlProgressListener() {
                     @Override
                     public void onProgress(long progress, long total) {
@@ -186,8 +192,10 @@ public class TaskFactory {
                     }
                 });
             } catch (CosXmlServiceException e) {
+                Log.d(TAG, "PutObjectTask, doInBackground: CosXmlServiceException = " + e);
                 e.printStackTrace();
             } catch (CosXmlClientException e) {
+                Log.d(TAG, "PutObjectTask, doInBackground: CosXmlClientException = " + e);
                 e.printStackTrace();
             }
             return null;
@@ -204,7 +212,7 @@ public class TaskFactory {
         @Override
         protected void onPostExecute(UploadService.UploadServiceResult uploadServiceResult) {
             long costTime = System.currentTimeMillis() - startTime;
-            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + costTime);
+            Log.d(TAG, "PutObjectTask, upload cost time: " + costTime);
             if (uploadServiceResult != null) {
                 Toast.makeText(context, uploadServiceResult.printResult(), Toast.LENGTH_SHORT).show();
             }
@@ -248,15 +256,19 @@ public class TaskFactory {
         protected PutObjectResult doInBackground(Void... voids) {
             try {
                 startTime = System.currentTimeMillis();
+                Log.d(TAG, "doInBackground: ------bucket = " + bucket + ", dstPath = " + dstPath + ", srcPath = " + srcPath);
                 return remoteStorage.simpleUploadFile(bucket, dstPath, srcPath, new CosXmlProgressListener() {
                     @Override
                     public void onProgress(long progress, long total) {
                         publishProgress((int) ((progress/ (float) total) * 100));
+//                        Log.d(TAG, "onProgress: -------- progress = " + (int) ((progress/ (float) total) * 100));
                     }
                 });
             } catch (CosXmlServiceException e) {
+                Log.d(TAG, "doInBackground: CosXmlServiceException = " + e);
                 e.printStackTrace();
             } catch (CosXmlClientException e) {
+                Log.d(TAG, "doInBackground: CosXmlClientException = " + e);
                 e.printStackTrace();
             }
             return null;
@@ -266,14 +278,14 @@ public class TaskFactory {
         @Override
         protected void onProgressUpdate(Integer... values) {
             QCloudLogger.i("upload", "progress " + values[0]);
-            Log.d(TAG, "SimplePutObjectTask, onProgressUpdate: progress " + values[0]);
+//            Log.d(TAG, "SimplePutObjectTask, onProgressUpdate: progress " + values[0]);
         }
 
 
         @Override
         protected void onPostExecute(PutObjectResult putObjectResult) {
             long costTime = System.currentTimeMillis() - startTime;
-            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + costTime);
+            Log.d(TAG, "SimplePutObjectTask, upload cost time: " + costTime + ", putObjectResult = " + putObjectResult);
             if (putObjectResult != null) {
                 Toast.makeText(context, putObjectResult.printResult(), Toast.LENGTH_SHORT).show();
             }

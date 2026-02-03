@@ -1,5 +1,6 @@
 package com.tencent.qcloud.csp.sample;
 import android.content.Context;
+import android.util.Log;
 
 import com.tencent.cos.xml.CosXmlService;
 import com.tencent.cos.xml.CosXmlServiceConfig;
@@ -13,7 +14,9 @@ import com.tencent.cos.xml.model.object.PutObjectResult;
 import com.tencent.cos.xml.model.service.GetServiceRequest;
 import com.tencent.cos.xml.model.service.GetServiceResult;
 import com.tencent.cos.xml.transfer.UploadService;
+import com.tencent.qcloud.core.auth.QCloudCredentialProvider;
 import com.tencent.qcloud.core.auth.QCloudSigner;
+import com.tencent.qcloud.core.auth.ShortTimeCredentialProvider;
 
 
 import java.net.MalformedURLException;
@@ -37,7 +40,7 @@ public class RemoteStorage {
 
     public RemoteStorage(Context context, String appid, String region, String hostFormat) {
 
-        isHttps = false;
+        isHttps = true;
         this.appid = appid;
         this.region = region;
 
@@ -56,15 +59,24 @@ public class RemoteStorage {
          * 私有云暂时不支持临时密钥进行签名，如果直接在客户端直接使用永久密钥会有安全性问题，因此这里采用
          * 服务端直接下发签名的方式来进行鉴权。
          */
-        URL url = null; // 您的服务端签名的 URL 地址
-        try {
-            url = new URL("your_auth_url");
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-        QCloudSigner cosSigner = new RemoteCOSSigner(url);
+//        URL url = null; // 您的服务端签名的 URL 地址
+//        try {
+//            url = new URL("your_auth_url");
+//        } catch (MalformedURLException e) {
+//            e.printStackTrace();
+//        }
+//        QCloudSigner cosSigner = new RemoteCOSSigner(url);
 
-        cosXmlService = new CosXmlService(context, cosXmlServiceConfig, cosSigner);
+        String secretId = "xxxxxx";
+        String secretKey ="xxxxxx";
+
+        /**
+         * 初始化 {@link QCloudCredentialProvider} 对象，来给 SDK 提供临时密钥。
+         */
+        QCloudCredentialProvider credentialProvider = new ShortTimeCredentialProvider(secretId,
+                secretKey, 300);
+
+        cosXmlService = new CosXmlService(context, cosXmlServiceConfig, credentialProvider);
     }
 
 
@@ -114,6 +126,7 @@ public class RemoteStorage {
             throws CosXmlServiceException, CosXmlClientException {
 
         UploadService.ResumeData resumeData = new UploadService.ResumeData();
+        Log.d("ljz", "uploadFile: ----- mSliceSize = " + mSliceSize + ", MULTIPART_UPLOAD_SIZE = " + MULTIPART_UPLOAD_SIZE);
         resumeData.sliceSize = mSliceSize > 0 ? mSliceSize : MULTIPART_UPLOAD_SIZE; // 分片上传的大小
         resumeData.cosPath = cosPath;
         resumeData.bucket = bucketName;
